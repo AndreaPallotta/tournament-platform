@@ -1,0 +1,20 @@
+FROM node:18-alpine
+
+ARG DOCKER_BUILDKIT=1
+
+ENV NODE_ENV=test
+ENV INCLUDE_DOTENV=true
+ENV PATH ./node_modules/.bin:$PATH
+
+COPY . /api
+
+WORKDIR /api
+
+COPY ./entrypoint.sh /entrypoint.sh
+
+RUN npm install
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT [ "/entrypoint.sh" ]
+
+CMD [ "npm", "test" ]

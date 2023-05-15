@@ -1,0 +1,23 @@
+version: '3.8'
+services:
+  frontend:
+    build:
+      context: frontend
+      dockerfile: Dockerfile.prod
+    ports:
+      - 8000:8000
+  backend:
+    build:
+      context: backend
+      dockerfile: Dockerfile.prod
+    ports:
+      - 5000:5000
+  reverse-proxy:
+    image: nginx:alpine
+    ports:
+      - 80:80
+    volumes:
+      - ./config/nginx_docker.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - frontend
+      - backend

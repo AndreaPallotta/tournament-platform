@@ -1,0 +1,50 @@
+# Node modules
+node_modules/
+
+# Build output
+dist/
+
+# Logs
+*.log
+**/logs/
+
+# Environment variables
+.env
+
+# IDE files
+.vscode/
+
+# Jest cache
+/coverage
+
+# TypeScript cache
+/lib
+/lib-cov
+.tsbuildinfo
+.nyc_output
+
+# Docker
+docker-compose.override.yml
+
+# Package-lock
+
+**/package-lock.json
+
+# Vite
+.vite
+
+# Other
+.DS_Store
+.env.*.local
+.env.*.production
+
+scripts/**/*.csv
+
+# Python
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.egg-info/
+**/venv/
+**/env/
+**/formatted_blacklisted_ips.json

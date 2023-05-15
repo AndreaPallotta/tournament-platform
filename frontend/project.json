@@ -1,0 +1,66 @@
+{
+  "$schema": "node_modules/nx/schemas/project-schema.json",
+  "name": "frontend",
+  "projectType": "application",
+  "sourceRoot": "./src",
+  "tags": [],
+  "targets": {
+    "build": {
+      "configurations": {
+        "development": {
+          "mode": "development"
+        },
+        "production": {
+          "mode": "production"
+        }
+      },
+      "defaultConfiguration": "production",
+      "executor": "@nrwl/vite:build",
+      "options": {
+        "outputPath": "dist/frontend",
+        "publicDir": "public"
+      },
+      "outputs": [
+        "{options.outputPath}"
+      ]
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "options": {
+        "lintFilePatterns": [
+          "./src/**/*.{ts,tsx,js,jsx}"
+        ]
+      },
+      "outputs": [
+        "{options.outputFile}"
+      ]
+    },
+    "serve": {
+      "configurations": {
+        "development": {
+          "buildTarget": "frontend:build:development",
+          "hmr": true
+        },
+        "production": {
+          "buildTarget": "frontend:build:production",
+          "hmr": false
+        }
+      },
+      "defaultConfiguration": "development",
+      "executor": "@nrwl/vite:dev-server",
+      "options": {
+        "buildTarget": "frontend:build"
+      }
+    },
+    "test": {
+      "executor": "@nrwl/vite:test",
+      "options": {
+        "passWithNoTests": true,
+        "reportsDirectory": "coverage/frontend"
+      },
+      "outputs": [
+        "coverage/frontend"
+      ]
+    }
+  }
+}

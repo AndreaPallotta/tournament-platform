@@ -1,0 +1,15 @@
+[Unit]
+Description=Service to run the admin flask app
+After=network.target
+
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/home/ubuntu/admin_server
+Environment="PATH=/home/ubuntu/admin_server/env/bin"
+ExecStart=/home/ubuntu/admin_server/env/bin/gunicorn --workers 3 --bind unix:/home/ubuntu/admin_server/admin_server.sock -m 007 wsgi:app
+
+[Install]
+WantedBy=multi-user.target
+Alias=admin_server
+Alias=admin_server.target

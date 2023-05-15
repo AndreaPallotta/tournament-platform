@@ -1,0 +1,20 @@
+FROM node:18-alpine
+
+ARG DOCKER_BUILDKIT=1
+
+WORKDIR /app
+
+ENV PATH ./node_modules/.bin:$PATH
+ENV NODE_ENV=production
+
+COPY package*.json /app/
+COPY ./entrypoint.sh /entrypoint.sh
+
+RUN npm install --omit=dev
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT [ "/entrypoint.sh" ]
+
+COPY . .
+
+CMD ["npm", "run", "start:prod"]

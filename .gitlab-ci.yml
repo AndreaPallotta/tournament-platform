@@ -1,0 +1,68 @@
+include:
+  - template: Security/SAST.gitlab-ci.yml
+  - template: Secret-Detection.gitlab-ci.yml
+  - template: Security/Dependency-Scanning.gitlab-ci.yml
+
+stages:
+  - build
+  - test
+  - deploy
+
+test:
+  stage: test
+  services:
+    - name: docker:20.10.16-dind
+      command: ['--tls=false']
+  variables:
+    SECURE_LOG_LEVEL: error
+    DOCKER_HOST: tcp://DOCKER:2375
+    DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ''
+    IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+    FF_GITLAB_REGISTRY_HELPER_IMAGE: 1
+  tags:
+    - docker_tests
+  rules:
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(production|staging).*/'
+  before_script:
+    - apk --update add nodejs npm
+    - docker system prune -af --volumes
+  script:
+    - docker-compose -f docker-compose.test.yml up --build
+  after_script:
+    - docker-compose down
+
+deploy_api:
+  stage: deploy
+  tags:
+    - docker_tests
+  rules:
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "production"
+  before_script:
+    - 'command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )'
+    - eval $(ssh-agent -s)
+    - chmod 400 "$SSH_PRIVATE_KEY"
+    - ssh-add "$SSH_PRIVATE_KEY"
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - export VERSION=$(cat VERSION)
+    - echo "HOST *" > ~/.ssh/config
+    - echo "StrictHostKeyChecking no" >> ~/.ssh/config
+    - export FLASK_PORT=5001
+  script:
+    - scp -i $SSH_PRIVATE_KEY -r admin_server $EC2_HOST_SSH_USER@$EC2_INSTANCE_IPS:/home/ubuntu/
+    - scp -i $SSH_PRIVATE_KEY scripts/flask.sh $EC2_HOST_SSH_USER@$EC2_INSTANCE_IPS:/home/ubuntu/
+    - scp -i $SSH_PRIVATE_KEY services/admin_server.service $EC2_HOST_SSH_USER@$EC2_INSTANCE_IPS:/tmp/
+    - scp -i $SSH_PRIVATE_KEY config/nginx_ec2.conf $EC2_HOST_SSH_USER@$EC2_INSTANCE_IPS:/tmp/nginx.conf
+    - ssh -i $SSH_PRIVATE_KEY $EC2_HOST_SSH_USER@$EC2_INSTANCE_IPS "sudo apt-get install -y nginx-core python3 pip || true"
+    - ssh -i $SSH_PRIVATE_KEY $EC2_HOST_SSH_USER@$EC2_INSTANCE_IPS "cd /home/ubuntu && chmod +x flask.sh && ./flask.sh"
+    - ssh -i $SSH_PRIVATE_KEY $EC2_HOST_SSH_USER@$EC2_INSTANCE_IPS "sudo mv /tmp/nginx.conf /etc/nginx/nginx.conf && sudo nginx -t"
+    - ssh -i $SSH_PRIVATE_KEY $EC2_HOST_SSH_USER@$EC2_INSTANCE_IPS "sudo mv /tmp/admin_server.service /etc/systemd/system/"
+    - ssh -i $SSH_PRIVATE_KEY $EC2_HOST_SSH_USER@$EC2_INSTANCE_IPS "sudo systemctl daemon-reload"
+    - ssh -i $SSH_PRIVATE_KEY $EC2_HOST_SSH_USER@$EC2_INSTANCE_IPS "sudo systemctl start nginx.service"
+    - ssh -i $SSH_PRIVATE_KEY $EC2_HOST_SSH_USER@$EC2_INSTANCE_IPS "sudo systemctl enable admin_server.service"
+    - ssh -i $SSH_PRIVATE_KEY $EC2_HOST_SSH_USER@$EC2_INSTANCE_IPS "sudo systemctl start admin_server.service"
+    - ssh -i $SSH_PRIVATE_KEY $EC2_HOST_SSH_USER@$EC2_INSTANCE_IPS "docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD"
+    - ssh -i $SSH_PRIVATE_KEY $EC2_HOST_SSH_USER@$EC2_INSTANCE_IPS "docker pull $CI_REGISTRY_IMAGE:$VERSION"
+    - ssh -i $SSH_PRIVATE_KEY $EC2_HOST_SSH_USER@$EC2_INSTANCE_IPS "docker stop express_api && docker rm express_api"
+    - ssh -i $SSH_PRIVATE_KEY $EC2_HOST_SSH_USER@$EC2_INSTANCE_IPS "docker run --name express_api -d -p 5000:5000 -e AUTH_SECRET='$AUTH_SECRET' -e DATABASE_URL='$DATABASE_URL' -e REFRESH_SECRET='$REFRESH_SECRET' -e AWS_ACCESS_KEY_ID='$AWS_ACCESS_KEY_ID' -e AWS_DEFAULT_REGION='$AWS_DEFAULT_REGION' -e AWS_SECRET_ACCESS_KEY='$AWS_SECRET_ACCESS_KEY' $CI_REGISTRY_IMAGE:$VERSION"

@@ -1,0 +1,125 @@
+generator client {
+  provider      = "prisma-client-js"
+  output        = "node_modules/.prisma/client"
+  engineType    = "library"
+  binaryTargets = ["native", "linux-musl"]
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  first_name    String
+  last_name     String
+  display_name  String?       @unique
+  email         String        @unique
+  college_id    String?       @db.ObjectId
+  college       College?      @relation(fields: [college_id], references: [id])
+  password      String
+  role          Role          @default(REGISTERED_USER)
+  team          Team?         @relation(fields: [team_id], references: [id])
+  team_id       String?       @db.ObjectId
+  invites       String[]      @default([])
+  upvoted_teams String[]      @default([])
+  review_status ReviewStatus? @default(IN_REVIEW)
+  page          Page?
+}
+
+model Team {
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  name          String        @unique
+  college_id    String?       @db.ObjectId
+  college       College?      @relation(fields: [college_id], references: [id])
+  players       User[]
+  page          Page?
+  upvotes       Int           @default(0)
+  tournament_id String?       @db.ObjectId
+  tournament    Tournament?   @relation(fields: [tournament_id], references: [id])
+  current_game  String?       @db.ObjectId
+  review_status ReviewStatus? @default(IN_REVIEW)
+}
+
+model College {
+  id            String      @id @default(auto()) @map("_id") @db.ObjectId
+  name          String      @unique
+  teams         Team[]
+  users         User[]
+  page          Page?
+  tournament_id String?     @unique @db.ObjectId
+  tournament    Tournament? @relation(fields: [tournament_id], references: [id])
+}
+
+model Tournament {
+  id         String           @id @default(auto()) @map("_id") @db.ObjectId
+  college    College?
+  parent_id  String?          @db.ObjectId
+  name       String           @unique
+  round      Int              @default(0)
+  deadline   DateTime
+  start_date DateTime
+  end_date   DateTime
+  teams      Team[]
+  status     TournamentStatus @default(UNSTARTED)
+  games      Game[]
+  page       Page?
+}
+
+model Game {
+  id            String      @id @default(auto()) @map("_id") @db.ObjectId
+  round         Int
+  nextId        String?     @db.ObjectId
+  status        GameStatus  @default(UNSTARTED)
+  tournament_id String?     @db.ObjectId
+  tournament    Tournament? @relation(fields: [tournament_id], references: [id])
+  winner        String?     @db.ObjectId
+  teams         GameTeams
+  page          Page?
+}
+
+/// List of roles. A user that is not signed in won't have an entry in the database.
+/// The logic to handle that is in the frontend
+enum Role {
+  REGISTERED_USER
+  PLAYER
+  TEAM_CAPTAIN
+  UNIVERSITY_MARKETING_MOD
+  UNIVERSITY_TOURNAMENT_MOD
+  AARDVARK_TOURNAMENT_MOD
+  ADMIN
+}
+
+/// Review status for player page, and team page.
+/// This is not currently in use, but might be needed if the sponsors decide the review process is required.
+enum ReviewStatus {
+  IN_REVIEW
+  APPROVED
+  DENIED
+}
+
+/// Tournament statuses (relies on the start dates and end dates, or if a privileged user has changed the status manually)
+enum TournamentStatus {
+  UNSTARTED
+  IN_PROGRESS
+  TERMINATED
+}
+
+enum GameStatus {
+  UNSTARTED
+  IN_PROGRESS
+  PLAYED
+}
+
+type Page {
+  picture String @default("") /// Either base64 or link to S3 Bucket. BSON is not supported
+  bio     String @default("")
+}
+
+type GameTeams {
+  team1_id    String? @db.ObjectId
+  team1_score Int     @default(0)
+  team2_id    String? @db.ObjectId
+  team2_score Int     @default(0)
+}

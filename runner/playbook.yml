@@ -1,0 +1,63 @@
+---
+- hosts: all
+  become: true
+
+  tasks:
+    - name: Install aptitude
+      apt:
+        name: aptitude
+        state: latest
+        update_cache: true
+
+    - name: Install git
+      apt:
+        name: git
+        state: latest
+        update_cache: true
+
+    - name: Install system packages
+      apt:
+        pkg:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+          - python3-pip
+          - virtualenv
+          - python3-setuptools
+        state: latest
+        update_cache: true
+
+    - name: Add Docker GPG apt Key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker Repository
+      apt_repository:
+        repo: deb https://download.docker.com/linux/ubuntu bionic stable
+        state: present
+
+    - name: Update apt and install docker-ce
+      apt:
+        name: docker-ce
+        state: latest
+        update_cache: true
+
+    - name: Install Docker Module for Python
+      pip:
+        name: docker
+
+    - name: Download GitLab Runner package
+      command: curl -LJO https://gitlab-runner-downloads.s3.amazonaws.com/latest/deb/gitlab-runner_amd64.deb
+
+    - name: Install GitLab Runner package
+      dpkg:
+        name: gitlab-runner_amd64.deb
+        state: present
+
+    - name: Register runner
+      command: gitlab-runner register --non-interactive --url https://gitlab.com/ --registration-token REGISTRATION_TOKEN --executor docker --description "Team NYC Runner" --docker-image "docker:19.03"
+      environment:
+        CI_SERVER_URL: 'https://gitlab.com/'
+        REGISTRATION_TOKEN: 'GR1348941CjMTtxG83DA-ys21rMz4'

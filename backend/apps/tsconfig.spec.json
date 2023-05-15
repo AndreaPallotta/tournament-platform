@@ -1,0 +1,29 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "outDir": "../dist/out-tsc",
+        "module": "commonjs",
+        "types": ["jest", "node"],
+        "composite": true,
+        "declaration": true,
+        "strictNullChecks": true
+    },
+    "include": [
+        "jest.config.ts",
+        "src/**/*.test.ts",
+        "src/**/*.spec.ts",
+        "src/**/*.d.ts",
+        "src/prisma/*.ts",
+        "src/crud/*.ts",
+        "src/utils/*.ts",
+        "src/tests/data.ts",
+        "src/middleware/*.ts",
+        "src/auth/*.ts",
+        "src/app.ts",
+        "src/routes/**/*.ts",
+        "src/controllers/**/*.ts",
+        "src/validation/**/*.ts",
+        "src/aws/**/*.ts",
+        "src/types/*.types.ts"
+    ]
+}

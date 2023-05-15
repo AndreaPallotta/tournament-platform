@@ -1,0 +1,23 @@
+{
+  "author": "",
+  "bugs": {
+    "url": "https://gitlab.com/nyc-team/game_tournament_platform/issues"
+  },
+  "description": "Webapp developed for hosting Aardvark Games tournaments.",
+  "homepage": "https://gitlab.com/nyc-team/game_tournament_platform#readme",
+  "keywords": [],
+  "license": "ISC",
+  "main": "index.js",
+  "name": "game_tournament_platform",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@gitlab.com/nyc-team/game_tournament_platform.git"
+  },
+  "scripts": {
+    "prettify": "sh ./scripts/prettier.sh",
+    "prettify:all": "sh ./scripts/prettier.sh -a",
+    "setup": "sh ./scripts/setup.sh",
+    "start:all": "concurrently --kill-others --names \"BACKEND,FRONTEND\" -c \"bgBlue.bold,bgGreen.bold\" \"npm start --prefix ./backend\" \"npm start --prefix ./frontend\""
+  },
+  "version": "1.0.0"
+}

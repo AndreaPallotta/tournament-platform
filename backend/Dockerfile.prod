@@ -1,0 +1,41 @@
+# Build stage
+FROM node:18-alpine AS build
+
+WORKDIR /app
+
+COPY package.json .
+
+RUN npm install
+
+COPY . .
+
+RUN npm run build
+
+# Prisma stage
+FROM node:18-alpine AS prisma
+
+WORKDIR /app
+
+COPY --from=build /app/node_modules ./node_modules
+COPY schema.prisma ./schema.prisma
+
+RUN npx prisma generate
+
+# Production stage
+FROM node:18-alpine AS production
+
+WORKDIR /app
+
+COPY --from=build /app/package*.json .
+COPY --from=build /app/dist ./dist
+COPY --from=prisma /app/node_modules/.prisma/client ./node_modules/.prisma/client
+
+ENV NODE_ENV=production
+ENV INCLUDE_DOTENV=false
+ENV PORT=5000
+
+EXPOSE 5000
+
+RUN npm install --omit=dev
+
+CMD ["npm", "run", "start:prod"]
